@@ -1,8 +1,5 @@
 package com.company;
 
-import jdk.swing.interop.SwingInterOpUtils;
-import org.w3c.dom.ls.LSOutput;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -10,18 +7,51 @@ import java.util.Scanner;
 
 public class Main {
 
-    static void print(String html, PrintStream printStream){
+    static void printHTML(File file, PrintStream printStream) throws IOException{
         printStream.println("HTTP/1.0 200 OK");
         printStream.println("Connection: close");
         printStream.println("Content-Type: text/HTML\n");
-        printStream.println(html);
+        byte[] data = new byte[ (int) file.length()];
+        FileInputStream inputStream = new FileInputStream(file);
+        inputStream.read(data);
+        printStream.write(data);
     }
 
-    static void printPNG(String fileName, PrintStream printStream) throws IOException {
+    static void printGIF(File file, PrintStream printStream) throws IOException {
+        printStream.println("HTTP/1.0 200 OK");
+        printStream.println("Connection: close");
+        printStream.println("Content-Type: image/gif \n");
+        byte[] data = new byte[ (int) file.length()];
+        FileInputStream inputStream = new FileInputStream(file);
+        inputStream.read(data);
+        printStream.write(data);
+    }
+
+    static void printJPG(File file, PrintStream printStream) throws IOException {
+        printStream.println("HTTP/1.0 200 OK");
+        printStream.println("Connection: close");
+        printStream.println("Content-Type: image/jpg \n");
+        byte[] data = new byte[ (int) file.length()];
+        FileInputStream inputStream = new FileInputStream(file);
+        inputStream.read(data);
+        printStream.write(data);
+    }
+
+    static void printPNG(File file, PrintStream printStream) throws IOException {
         printStream.println("HTTP/1.0 200 OK");
         printStream.println("Connection: close");
         printStream.println("Content-Type: image/png\n");
-        File file = new File(fileName);
+        byte[] data = new byte[ (int) file.length()];
+        FileInputStream inputStream = new FileInputStream(file);
+        inputStream.read(data);
+        printStream.write(data);
+    }
+
+    static void print404(PrintStream printStream) throws IOException {
+        File file = new File("error/error.html");
+        printStream.println("HTTP/1.0 404 OK");
+        printStream.println("Connection: close");
+        printStream.println("Content-Type: text/HTML\n");
         byte[] data = new byte[ (int) file.length()];
         FileInputStream inputStream = new FileInputStream(file);
         inputStream.read(data);
@@ -38,8 +68,37 @@ public class Main {
             InputStream inputStream = socket.getInputStream();
             Scanner scanner = new Scanner(inputStream);
             PrintStream printStream = new PrintStream(socket.getOutputStream());
-            print("<h1> Hello world </h1>", printStream);
-            printPNG("earth.png", printStream);
+            String headerLine = scanner.nextLine();
+            File file = new File(headerLine.split(" ")[1].substring(1));
+            if (headerLine.split(" ")[1].substring(1).equals("")){
+                printHTML(new File("index.html"), printStream);
+                continue;
+            }
+            if (!file.exists()){
+                print404(printStream);
+                continue;
+            }
+            if (file.isDirectory()){
+                file = new File(headerLine.split(" ")[1].substring(1) + "/index.html");
+                printHTML(file, printStream);
+                continue;
+            }
+            if (file.exists()){
+                String row = headerLine.split(" ")[1].split("\\.")[1];
+                System.out.println(row);
+                if (row.equals("html")) {
+                    printHTML(file, printStream);
+                }
+                if (row.equals("png")) {
+                    printPNG(file, printStream);
+                }
+                if (row.equals("jpg")) {
+                    printJPG(file, printStream);
+                }
+                if (row.equals("gif")) {
+                    printGIF(file, printStream);
+                }
+            }
             socket.close();
         }
     }
